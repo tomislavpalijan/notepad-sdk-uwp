@@ -29,6 +29,9 @@ namespace NotepadKit
         public void Disconnect()
         {
             Debug.WriteLine("NotepadConnector::Disconnect");
+            _notepadClient = null;
+            _notepadType = null;
+
             if (_bluetoothDevice != null)
                 _bluetoothDevice.ConnectionStatusChanged -= OnConnectionStatusChanged;
             _bluetoothDevice?.Dispose();
@@ -48,7 +51,9 @@ namespace NotepadKit
             }
             else
             {
-                ConnectionChanged?.Invoke(_notepadClient, ConnectionState.Disconnected);
+                _notepadClient = null;
+                _notepadType = null;
+                ConnectionChanged?.Invoke(null, ConnectionState.Disconnected);
             }
         }
     }
