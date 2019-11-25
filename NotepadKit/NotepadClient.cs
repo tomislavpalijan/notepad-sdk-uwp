@@ -36,5 +36,7 @@ namespace NotepadKit
         public abstract Task<MemoSummary> GetMemoSummary();
 
         public abstract Task<MemoInfo> GetMemoInfo();
+
+        public abstract Task<MemoData> ImportMemo(Action<int> progress);
     }
 }

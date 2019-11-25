@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 
 namespace NotepadKit
@@ -185,5 +188,32 @@ namespace NotepadKit
                 0x01 // Manufacturer Id
             }
         );
+
+        /**
+         * Memo is kind of LargeData, transferred in data structure [ImageTransmission]
+         * +------------------------------------------------------------+
+         * |                            LargeData                       |
+         * +------------------------+----------+------------------------+
+         * | [ImageTransmission]    |   ...    |  [ImageTransmission]   |
+         * +------------------------+----------+------------------------+
+         */
+        public override async Task<MemoData> ImportMemo(Action<int> progress)
+        {
+            var info = await GetLargeDataInfo();
+            if (info.sizeInByte <= ImageTransmission.EMPTY_LENGTH) throw new Exception("No memo");
+
+            var imageData = await RequestTransportation(info.sizeInByte, progress);
+            return new MemoData {memoInfo = info, pointers = parseMemo(imageData, info.createdAt)};
+        }
+
+        private List<NotePenPointer> parseMemo(byte[] bytes, long createdAt)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task<byte[]> RequestTransportation(long totalSize, Action<int> progress)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
