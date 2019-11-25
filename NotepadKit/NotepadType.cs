@@ -39,12 +39,15 @@ namespace NotepadKit
             await _bleType.SetNotifiable(serviceCharacteristic, inputProperty);
         }
 
+        // FIXME Windows lacks BLE-MTU API
+        public int mtu = 247;
+
         private async Task SendValue((string, string) serviceCharacteristic, byte[] request)
         {
             await _bleType.WriteValue(serviceCharacteristic, request);
         }
 
-        private async Task SendRequestAsync(string messageHead, (string, string) serviceCharacteristic, byte[] request)
+        public async Task SendRequestAsync(string messageHead, (string, string) serviceCharacteristic, byte[] request)
         {
             await SendValue(serviceCharacteristic, request);
             Debug.WriteLine($"on{messageHead}Send: {request.ToHexString()}");
