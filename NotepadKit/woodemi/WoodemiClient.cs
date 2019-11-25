@@ -23,6 +23,7 @@ namespace NotepadKit
         private static readonly string SERV__FILE_INPUT = $"57444D03-{SUFFIX}";
         private static readonly string CHAR__FILE_INPUT_CONTROL_REQUEST = $"57444D04-{SUFFIX}";
         private static readonly string CHAR__FILE_INPUT_CONTROL_RESPONSE = CHAR__FILE_INPUT_CONTROL_REQUEST;
+        private static readonly string CHAR__FILE_INPUT = $"57444D05-{SUFFIX}";
 
         private static readonly byte[] DEFAULT_AUTH_TOKEN = {0x00, 0x00, 0x00, 0x01};
 
@@ -34,10 +35,14 @@ namespace NotepadKit
         public override (string, string) CommandResponseCharacteristic => (SERV__COMMAND, CHAR__COMMAND_RESPONSE);
 
         public override (string, string) SyncInputCharacteristic => (SERV__SYNC, CHAR__SYNC_INPUT);
-        
-        public override (string, string) FileInputControlRequestCharacteristic => (SERV__FILE_INPUT, CHAR__FILE_INPUT_CONTROL_REQUEST);
 
-        public override (string, string) FileInputControlResponseCharacteristic => (SERV__FILE_INPUT, CHAR__FILE_INPUT_CONTROL_RESPONSE);
+        public override (string, string) FileInputControlRequestCharacteristic =>
+            (SERV__FILE_INPUT, CHAR__FILE_INPUT_CONTROL_REQUEST);
+
+        public override (string, string) FileInputControlResponseCharacteristic =>
+            (SERV__FILE_INPUT, CHAR__FILE_INPUT_CONTROL_RESPONSE);
+
+        public override (string, string) FileInputCharacteristic => (SERV__FILE_INPUT, CHAR__FILE_INPUT);
 
         public override IReadOnlyList<(string, string)> InputIndicationCharacteristics => new List<(string, string)>
         {
@@ -47,7 +52,8 @@ namespace NotepadKit
 
         public override IReadOnlyList<(string, string)> InputNotificationCharacteristics => new List<(string, string)>
         {
-            SyncInputCharacteristic
+            SyncInputCharacteristic,
+            FileInputCharacteristic
         };
 
         internal override async Task CompleteConnection(Action<bool> awaitConfirm)
@@ -220,7 +226,7 @@ namespace NotepadKit
          */
         private async Task<byte[]> RequestTransmission(long totalSize, Action<int> progress)
         {
-            var data = new byte[]{};
+            var data = new byte[] { };
             while (data.Length < totalSize)
             {
                 var currentPos = data.Length;
@@ -241,7 +247,7 @@ namespace NotepadKit
 
             return new ImageTransmission(data).imageData;
         }
-        
+
         /**
          * Request in file input control pipe
          * +------------+--------------------------------------------------------------------------------------------+
@@ -268,8 +274,9 @@ namespace NotepadKit
             var blockSize = Math.Min(totalSize - currentPos, maxBlockSize);
             var transferMethod = (byte) 0x00;
             var l2capChannelOrPsm = (short) 0x0004;
-            
-            Debug.WriteLine($"requestForNextBlock currentPos {currentPos}, totalSize {totalSize}, blockSize {blockSize}, maxChunkSize {maxChunkSize}");
+
+            Debug.WriteLine(
+                $"requestForNextBlock currentPos {currentPos}, totalSize {totalSize}, blockSize {blockSize}, maxChunkSize {maxChunkSize}");
 
             byte[] request;
             using (var stream = new MemoryStream())
@@ -282,22 +289,33 @@ namespace NotepadKit
                     writer.Write((int) blockSize);
                     writer.Write((short) maxChunkSize);
                     writer.Write(transferMethod);
-                    writer.Write(l2capChannelOrPsm);    
+                    writer.Write(l2capChannelOrPsm);
                 }
+
                 request = stream.ToArray();
             }
 
             var chunkCountCeil = (int) Math.Ceiling(blockSize * 1.0 / maxBlockSize);
             var indexedChunkObservable = ReceiveChunks(chunkCountCeil);
-            
+
             await _notepadType.SendRequestAsync("FileInputControl", FileInputControlRequestCharacteristic, request);
 
             return indexedChunkObservable;
         }
 
-        private IObservable<(int, byte[])> ReceiveChunks(int count)
-        {
-            throw new NotImplementedException();
-        }
+        /**
+         * +-------------+--------------------------+
+         * | responseTag |       responseData       |
+         * +-------------+-------------+------------+
+         * |             |  chunkSeqId |  chunkData |
+         * |             |             |            |
+         * | 1 byte      |  1 byte     |  ...       |
+         * +-------------+-------------+------------+
+         */
+        private IObservable<(int, byte[])> ReceiveChunks(int count) =>
+            _notepadType.ReceiveFileInput()
+                .Where(value => value.First() == 0x05)
+                .Take(count)
+                .Select(value => ((int) value[1], value.Skip(2).ToArray()));
     }
 }
