@@ -78,22 +78,28 @@ namespace NotepadKit
             return command.handle(await receiveResponse);
         }
 
-        public IObservable<byte[]> ReceiveSyncInput()
-        {
-            return ReceiveValue(_notepadClient.SyncInputCharacteristic).Select(
-                value =>
-                {
-                    Debug.WriteLine($"OnSyncInputReceive: {value.ToHexString()}");
-                    return value;
-                });
-        }
+        public IObservable<byte[]> ReceiveSyncInput() =>
+            ReceiveValue(_notepadClient.SyncInputCharacteristic).Select(value =>
+            {
+                Debug.WriteLine($"OnSyncInputReceive: {value.ToHexString()}");
+                return value;
+            });
 
         public async Task<Response> ExecuteFileInputControl<Response>(WoodemiCommand<Response> command)
         {
-            var receiveResponse = ReceiveResponseAsync("FileInputControl", _notepadClient.FileInputControlResponseCharacteristic,
+            var receiveResponse = ReceiveResponseAsync("FileInputControl",
+                _notepadClient.FileInputControlResponseCharacteristic,
                 command.intercept);
-            await SendRequestAsync("FileInputControl", _notepadClient.FileInputControlRequestCharacteristic, command.request);
+            await SendRequestAsync("FileInputControl", _notepadClient.FileInputControlRequestCharacteristic,
+                command.request);
             return command.handle(await receiveResponse);
         }
+
+        public IObservable<byte[]> ReceiveFileInput() =>
+            ReceiveValue(_notepadClient.FileInputCharacteristic).Select(value =>
+            {
+                Debug.WriteLine($"onFileInputReceive: {value.ToHexString()}");
+                return value;
+            });
     }
 }
