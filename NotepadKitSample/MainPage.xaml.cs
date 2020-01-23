@@ -31,7 +31,7 @@ namespace NotepadKitSample
         private void OnConnectionChanged(NotepadClient sender, ConnectionState args)
         {
             Debug.WriteLine($"OnConnectionChanged {args}");
-            if (args == ConnectionState.AwaitConfirm && args == ConnectionState.Connected)
+            if (args == ConnectionState.AwaitConfirm || args == ConnectionState.Connected)
             {
                 _notepadClient = sender;
             }
