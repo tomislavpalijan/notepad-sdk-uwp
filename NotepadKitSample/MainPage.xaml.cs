@@ -31,11 +31,9 @@ namespace NotepadKitSample
         private void OnConnectionChanged(NotepadClient sender, ConnectionState args)
         {
             Debug.WriteLine($"OnConnectionChanged {args}");
-            if (args == ConnectionState.Connected)
+            if (args == ConnectionState.AwaitConfirm && args == ConnectionState.Connected)
             {
                 _notepadClient = sender;
-                _notepadClient.SyncPointerReceived += OnSyncPointerReceived;
-                _notepadClient.SetMode(NotepadMode.Sync);
             }
             else if (args == ConnectionState.Disconnected)
             {
@@ -73,11 +71,17 @@ namespace NotepadKitSample
 
         private void button5_Click(object sender, RoutedEventArgs e)
         {
+            _notepadClient.SyncPointerReceived += OnSyncPointerReceived;
+            _notepadClient.SetMode(NotepadMode.Sync);
+        }
+
+        private void button6_Click(object sender, RoutedEventArgs e)
+        {
             _notepadClient.GetMemoSummary().ToObservable()
                 .Subscribe(memoSummary => Debug.WriteLine($"GetMemoSummary {memoSummary}"));
         }
 
-        private void button6_Click(object sender, RoutedEventArgs e)
+        private void button7_Click(object sender, RoutedEventArgs e)
         {
             _notepadClient.GetMemoInfo().ToObservable()
                 .Subscribe(memoInfo => Debug.WriteLine($"GetMemoInfo {memoInfo}"));
